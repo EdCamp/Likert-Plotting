@@ -1,0 +1,64 @@
+rm(list = ls())
+library(HH)
+
+
+### DATA SECTION ########################################################
+setwd("U:/UF/Extension specific/CIVIC program/Evaluation/Milligan et al/data");
+dat = read.csv("reformated oldsmar survey2_rescaled.csv")
+
+# Controls
+ncovcol = 2                   #number of covariate columns to the LEFT of the survey responses
+nquest = dim(dat)[2]-ncovcol  #number of questions
+nlikert = 5                   #number of likert choices
+questname = "Statement"       #what are you calling the questions, e.g., "Question", "Statement", etc. NOTE you still need to update in RHS of formular in likert call (line 72)!!
+likertscales = c("Strongly disagree", "Disagree", "Not sure", "Agree", "Strongly agree") #these words should correspond IN ORDER to likert scales 1:nlikert
+
+
+pre=dat[which(dat$pre_post=="pre"),]       #split data into pre 
+post=dat[which(dat$pre_post=="post"),]     #split data into post
+
+#create a matrix of pre data
+mat_pre = matrix(NA, nrow=nquest, ncol=nlikert)
+for(i in 1:dim(mat_pre)[1]){
+    for(j in 1:dim(mat_pre)[2]){
+          mat_pre[i,j] = length(which(pre[,(i+ncovcol)]==j))
+          }
+    }
+
+#matrix of post data
+mat_post = matrix(NA, nrow=nquest, ncol=nlikert)
+for(i in 1:dim(mat_post)[1]){
+    for(j in 1:dim(mat_post)[2]){
+          mat_post[i,j] = length(which(post[,(i+ncovcol)]==j))
+          }
+    }
+
+
+
+home=vector(length=nquest)
+
+for(i in 1:nquest){
+  home[i] = paste(questname, i, sep=" ")
+}
+
+
+xx = data.frame(rbind(mat_pre, mat_post))
+xx$treatment = c(rep("Pre",nquest),rep("Post",nquest))
+xx$questname = as.character(as.factor(c(rep(home,2))))
+#NOTE the likert answers for numbers 1:5 should occupy colnames[1:5] below
+colnames(xx) = c(likertscales, "treatment", questname)
+
+### PLOTTING ########################################################
+#create custom colors, preferably some form garrish orange and blue
+  BlueOrange <- likertColor(nc=nlikert, ReferenceZero=NULL,
+                            colorFunction="diverge_hcl",
+                            colorFunctionArgs=
+                              list(h=c(236, 30), c=96, l=c(65,90), power=1.5))     #Can change the hue with h, chroma value (light to dark) with c
+
+
+likert(Statement~.|treatment, data=xx, data.order=FALSE, main='', sub="",strip=TRUE, col=BlueOrange,
+       ylab = list(label=questname, cex=1.6),
+       xlab = list(label="Count", cex=1.6),
+       scales = list(y = list(cex = 1.2)),
+       auto.key=list(space="bottom", columns=5, cex=1.2),
+       par.settings = list(strip.background=list(col="lightgrey")))
